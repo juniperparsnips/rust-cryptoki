@@ -7,9 +7,7 @@ use crate::error::{Error, Result};
 use crate::types::Ulong;
 use cryptoki_sys::*;
 use log::error;
-use std::convert::{TryFrom, TryInto};
-use std::ffi::c_void;
-use std::marker::PhantomData;
+use std::convert::TryFrom;
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,20 +92,8 @@ impl<'a> PkcsOaepSource<'a> {
         Self(Some(source_data))
     }
 
-    pub(crate) fn source_ptr(&self) -> *const c_void {
-        if let Some(source_data) = self.0 {
-            source_data.as_ptr() as _
-        } else {
-            std::ptr::null()
-        }
-    }
-
-    pub(crate) fn source_len(&self) -> Ulong {
-        self.0
-            .unwrap_or_default()
-            .len()
-            .try_into()
-            .expect("usize can not fit in CK_ULONG")
+    pub(crate) fn data(&self) -> &'a [u8] {
+        self.0.unwrap_or_default()
     }
 
     pub(crate) fn source_type(&self) -> CK_RSA_PKCS_OAEP_SOURCE_TYPE {
@@ -143,11 +129,7 @@ pub struct PkcsOaepParams<'a> {
     /// source of the encoding parameter
     source: CK_RSA_PKCS_OAEP_SOURCE_TYPE,
     /// data used as the input for the encoding parameter source
-    source_data: *const c_void,
-    /// length of the encoding parameter source input
-    source_data_len: Ulong,
-    /// marker type to ensure we don't outlive the source_data
-    _marker: PhantomData<&'a [u8]>,
+    source_data: &'a [u8],
 }
 
 impl<'a> PkcsOaepParams<'a> {
@@ -168,9 +150,7 @@ impl<'a> PkcsOaepParams<'a> {
             hash_alg,
             mgf,
             source: encoding_parameter.source_type(),
-            source_data: encoding_parameter.source_ptr(),
-            source_data_len: encoding_parameter.source_len(),
-            _marker: PhantomData,
+            source_data: encoding_parameter.data(),
         }
     }
 }

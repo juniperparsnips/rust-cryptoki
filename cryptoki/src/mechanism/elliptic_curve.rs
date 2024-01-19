@@ -1,10 +1,6 @@
 //! ECDH mechanism types
 
-use crate::types::Ulong;
 use cryptoki_sys::*;
-use std::convert::TryInto;
-use std::marker::PhantomData;
-use std::ptr;
 
 /// ECDH derivation parameters.
 ///
@@ -20,18 +16,10 @@ use std::ptr;
 pub struct Ecdh1DeriveParams<'a> {
     /// Key derivation function
     kdf: CK_EC_KDF_TYPE,
-    /// Length of the optional shared data used by some of the key
-    /// derivation functions
-    shared_data_len: Ulong,
-    /// Address of the optional data or `std::ptr::null()` of there is
-    /// no shared data
-    shared_data: *const u8,
-    /// Length of the other party's public key
-    public_data_len: Ulong,
-    /// Pointer to the other party public key
-    public_data: *const u8,
-    /// Marker type to ensure we don't outlive shared and public data
-    _marker: PhantomData<&'a [u8]>,
+    // Optional shared data used by some of the key derivation functions
+    shared_data: &'a [u8],
+    // The other party's public key
+    public_data: &'a [u8],
 }
 
 impl<'a> Ecdh1DeriveParams<'a> {
@@ -52,18 +40,8 @@ impl<'a> Ecdh1DeriveParams<'a> {
     pub fn new(kdf: EcKdf<'a>, public_data: &'a [u8]) -> Self {
         Self {
             kdf: kdf.kdf_type,
-            shared_data_len: kdf
-                .shared_data
-                .map_or(0, <[u8]>::len)
-                .try_into()
-                .expect("usize can not fit in CK_ULONG"),
-            shared_data: kdf.shared_data.map_or(ptr::null(), <[u8]>::as_ptr),
-            public_data_len: public_data
-                .len()
-                .try_into()
-                .expect("usize can not fit in CK_ULONG"),
-            public_data: public_data.as_ptr(),
-            _marker: PhantomData,
+            shared_data: kdf.shared_data.unwrap_or_default(),
+            public_data,
         }
     }
 }

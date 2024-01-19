@@ -3,17 +3,13 @@
 //! AEAD block cipher mechanism types
 
 use crate::types::Ulong;
-use cryptoki_sys::*;
-use std::convert::TryInto;
-use std::marker::PhantomData;
-use std::slice;
 
 /// Parameters for AES-GCM.
 #[derive(Debug, Clone, Copy)]
-#[repr(transparent)]
 pub struct GcmParams<'a> {
-    inner: CK_GCM_PARAMS,
-    _marker: PhantomData<&'a [u8]>,
+    iv: &'a [u8],
+    aad: &'a [u8],
+    tag_bits: Ulong,
 }
 
 impl<'a> GcmParams<'a> {
@@ -53,39 +49,21 @@ impl<'a> GcmParams<'a> {
         // set it to zero.
         //
         // [1]: https://www.oasis-open.org/committees/document.php?document_id=58032&wg_abbrev=pkcs11
-        GcmParams {
-            inner: CK_GCM_PARAMS {
-                pIv: iv.as_ptr() as *mut _,
-                ulIvLen: iv
-                    .len()
-                    .try_into()
-                    .expect("iv length does not fit in CK_ULONG"),
-                ulIvBits: 0,
-                pAAD: aad.as_ptr() as *mut _,
-                ulAADLen: aad
-                    .len()
-                    .try_into()
-                    .expect("aad length does not fit in CK_ULONG"),
-                ulTagBits: tag_bits.into(),
-            },
-            _marker: PhantomData,
-        }
+        GcmParams { iv, aad, tag_bits }
     }
 
     /// The initialization vector.
     pub fn iv(&self) -> &'a [u8] {
-        // SAFETY: In the constructor, the IV always comes from a &'a [u8]
-        unsafe { slice::from_raw_parts(self.inner.pIv, self.inner.ulIvLen as _) }
+        self.iv
     }
 
     /// The additional authenticated data.
     pub fn aad(&self) -> &'a [u8] {
-        // SAEFTY: In the constructor, the AAD always comes from a &'a [u8]
-        unsafe { slice::from_raw_parts(self.inner.pAAD, self.inner.ulAADLen as _) }
+        self.aad
     }
 
     /// The length, in bits, of the authentication tag.
     pub fn tag_bits(&self) -> Ulong {
-        self.inner.ulTagBits.into()
+        self.tag_bits
     }
 }
