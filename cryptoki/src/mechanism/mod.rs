@@ -7,6 +7,7 @@ pub mod ekdf;
 pub mod elliptic_curve;
 mod mechanism_info;
 pub mod rsa;
+pub mod vendor;
 
 use crate::error::Error;
 use cryptoki_sys::*;
@@ -619,6 +620,11 @@ impl MechanismType {
             _ => format!("unknown {mech:08x}"),
         }
     }
+
+    /// A custom vendor-defined mechanism
+    pub fn new_vendor_defined(mech: CK_MECHANISM_TYPE) -> MechanismType {
+        MechanismType { val: mech }
+    }
 }
 
 impl std::fmt::Display for MechanismType {
@@ -851,6 +857,8 @@ pub enum Mechanism<'a> {
     Sha256Hmac,
     /// GENERIC-SECRET-KEY-GEN mechanism
     GenericSecretKeyGen,
+    /// A generic vendor defined PKCS 11 mechanism
+    VendorDefined(vendor::VendorDefinedMechanism<'a>),
 }
 
 impl Mechanism<'_> {
@@ -914,6 +922,8 @@ impl Mechanism<'_> {
             Mechanism::Sha256Hmac => MechanismType::SHA256_HMAC,
 
             Mechanism::GenericSecretKeyGen => MechanismType::GENERIC_SECRET_KEY_GEN,
+
+            Mechanism::VendorDefined(v) => v.mechanism_type(),
         }
     }
 }
@@ -985,6 +995,8 @@ impl From<&Mechanism<'_>> for CK_MECHANISM {
                 pParameter: null_mut(),
                 ulParameterLen: 0,
             },
+
+            Mechanism::VendorDefined(v) => make_mechanism(mechanism, v.params),
         }
     }
 }
