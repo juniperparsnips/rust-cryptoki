@@ -33,6 +33,6 @@ impl<'a> VendorDefinedMechanism<'a> {
 
 /// Parameters for a custom mechanism
 /// TODO: Safety about mutating in custom mechanisms
-pub trait MechanismParams: Debug {}
+pub trait MechanismParams: Debug + Send + Sync {}
 
 impl MechanismParams for () {}
