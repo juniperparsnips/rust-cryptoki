@@ -6,7 +6,12 @@ edition = '2018'
 description = "Rust-native wrapper around the PKCS #11 API"
 readme = "README.md"
 keywords = ["pkcs11", "cryptoki", "hsm"]
-categories = ["api-bindings", "external-ffi-bindings", "cryptography", "hardware-support"]
+categories = [
+	"api-bindings",
+	"external-ffi-bindings",
+	"cryptography",
+	"hardware-support",
+]
 license = "Apache-2.0"
 repository = "https://github.com/parallaxsecond/rust-cryptoki"
 documentation = "https://docs.rs/crate/cryptoki"
@@ -20,6 +25,7 @@ psa-crypto = { version = "0.12.0", default-features = false, optional = true }
 cryptoki-sys = { path = "../cryptoki-sys", version = "0.1.7" }
 paste = "1.0.6"
 secrecy = "0.8.0"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 num-traits = "0.2.14"

@@ -6,6 +6,37 @@ use std::fmt::Debug;
 
 use super::MechanismType;
 
+// The current problem with this that remains to be solved is enforcing
+// a single type of params for a new `MechanismType`
+// Something like
+// ```
+// pub trait VendorMechanism {
+//     const TYPE: MechanismType;
+// }
+// ```
+// Would be nice, but it's not object safe, which we really need for dynamic vendor types
+// Another option could be
+// ```
+// pub trait VendorMechanism {
+//     fn mechanism_type(&self) -> MechanismType;
+// }
+// ```
+// But that still allows the implementor to change the mechanism types for a param
+// It would require otherwise unnecessary unit structs such as
+// ```
+// pub const CKA_EXPORT: CK_ATTRIBUTE_TYPE = 0x10000001;
+// let custom_type = MechanismType::new_vendor_defined(CKA_CUSTOM);
+// pub struct CustomMechanism;
+//
+// impl VendorMechanism for CustomMechanism {
+//      fn mechanism_type(&self) -> MechanismType {
+//          custom_type
+//      }
+// }
+// ```
+// though it's the inverse of what I actually want. It sets a single MechanismType for each param
+// not single param type for each MechanismType
+
 #[derive(Debug, Clone, Copy)]
 /// A generic vendor defined mechanism
 pub struct VendorDefinedMechanism<'a> {

@@ -12,6 +12,7 @@ pub mod vendor;
 use crate::error::Error;
 use cryptoki_sys::*;
 use log::error;
+use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::ffi::c_void;
 use std::fmt::Formatter;
@@ -29,6 +30,10 @@ pub use mechanism_info::MechanismInfo;
 pub struct MechanismType {
     val: CK_MECHANISM_TYPE,
 }
+
+static mut VENDOR_DEFINED_MECHANISMS: Option<
+    HashMap<CK_MECHANISM_TYPE, Box<dyn MechanismBuilder>>,
+> = None;
 
 impl MechanismType {
     // AES
@@ -622,7 +627,19 @@ impl MechanismType {
     }
 
     /// A custom vendor-defined mechanism
-    pub fn new_vendor_defined(mech: CK_MECHANISM_TYPE) -> MechanismType {
+    ///
+    /// Safety: In order to prevent collisions in defined mechanism types a registry of defined mechanisms is
+    /// kept across threads through the runtime of the program.
+    ///
+    /// Panics: Function will panic if trying to defined a mechanism type that already exists
+    pub unsafe fn new_vendor_defined<T>(mech: CK_MECHANISM_TYPE, builder: T) -> MechanismType
+    where
+        T: MechanismBuilder + 'static,
+    {
+        let set = VENDOR_DEFINED_MECHANISMS.get_or_insert(HashMap::new());
+        let builder = Box::new(builder);
+        let prev_mech = set.insert(mech, builder);
+        assert!(prev_mech.is_none());
         MechanismType { val: mech }
     }
 }
@@ -1014,6 +1031,9 @@ fn make_mechanism<T>(mechanism: CK_MECHANISM_TYPE, param: &T) -> CK_MECHANISM {
             .expect("usize can not fit in CK_ULONG"),
     }
 }
+
+/// TODO!
+pub trait MechanismBuilder {}
 
 #[cfg(feature = "psa-crypto-conversions")]
 #[allow(deprecated)]
